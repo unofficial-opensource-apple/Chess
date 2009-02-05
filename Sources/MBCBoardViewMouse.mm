@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardViewMouse.mm
 	Contains:	Handle mouse coordinate transformations
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -55,10 +55,21 @@ using std::min;
 using std::max;
 
 //
-// We're doing a lot of UnProjects. This class encapsulates them.
+// We're doing a lot of Projects and UnProjects. 
+// These classes encapsulate them.
 //
-class MBCUnProjector 
-{
+class MBCProjector {
+public:
+	MBCProjector();
+
+	NSPoint Project(MBCPosition pos);
+protected:
+    GLint		fViewport[4];
+    GLdouble	fMVMatrix[16];
+	GLdouble	fProjMatrix[16];
+};
+
+class MBCUnProjector : private MBCProjector {
 public:
 	MBCUnProjector(GLdouble winX, GLdouble winY);
 	
@@ -67,17 +78,30 @@ public:
 private:
 	GLdouble	fWinX;
 	GLdouble	fWinY;	
-    GLint		fViewport[4];
-    GLdouble	fMVMatrix[16];
-	GLdouble	fProjMatrix[16];
 };
 
-MBCUnProjector::MBCUnProjector(GLdouble winX, GLdouble winY)
-	: fWinX(winX), fWinY(winY)
+MBCProjector::MBCProjector()
 {
     glGetIntegerv(GL_VIEWPORT, fViewport);
     glGetDoublev(GL_MODELVIEW_MATRIX, fMVMatrix);
     glGetDoublev(GL_PROJECTION_MATRIX, fProjMatrix);
+}
+
+NSPoint MBCProjector::Project(MBCPosition pos)
+{
+	GLdouble 	w[3];
+
+	gluProject(pos[0], pos[1], pos[2], fMVMatrix, fProjMatrix, fViewport,
+			   w+0, w+1, w+2);
+
+	NSPoint pt = {w[0], w[1]};
+
+	return pt;
+}
+
+MBCUnProjector::MBCUnProjector(GLdouble winX, GLdouble winY)
+	: MBCProjector(), fWinX(winX), fWinY(winY)
+{
 }
 
 MBCPosition MBCUnProjector::UnProject()
@@ -128,13 +152,63 @@ MBCPosition operator-(const MBCPosition & a, const MBCPosition & b)
 
 @implementation MBCBoardView ( Mouse )
 
-- (void) mouseMoved:(NSEvent *)event
+- (NSRect) approximateBoundsOfSquare:(MBCSquare)square
+{
+	const float kSquare = 4.5f;
+
+	MBCProjector proj;
+	MBCPosition  pos = [self squareToPosition:square];
+
+	pos[0] -= kSquare;
+	pos[2] -= kSquare;
+	NSPoint p0	= proj.Project(pos);
+	
+	pos[0] += 2.0f*kSquare;
+	NSPoint p1 	= proj.Project(pos);
+	
+	pos[2] += 2.0f*kSquare;
+	NSPoint p2 	= proj.Project(pos);
+
+	pos[0] -= 2.0f*kSquare;
+	NSPoint p3 	= proj.Project(pos);
+
+	NSRect r;
+	if (p1.x > p0.x) {
+		r.origin.x 		= max(p0.x, p3.x);
+		r.size.width	= min(p1.x, p2.x)-r.origin.x;
+	} else {
+		r.origin.x 		= max(p1.x, p2.x);
+		r.size.width	= min(p0.x, p3.x)-r.origin.x;
+	}
+	if (p2.y > p1.y) {
+		r.origin.y 		= max(p0.y, p1.y);
+		r.size.height	= min(p2.y, p3.y)-r.origin.y;
+	} else {
+		r.origin.y 		= max(p2.y, p3.y);
+		r.size.height	= min(p0.y, p1.y)-r.origin.y;
+	}
+
+	return r;
+}
+
+- (MBCPosition) mouseToPosition:(NSPoint)mouse
+{
+	MBCUnProjector	unproj(mouse.x, mouse.y);
+	
+	return unproj.UnProject();
+}
+
+- (MBCPosition) eventToPosition:(NSEvent *)event
 {
     NSPoint p = [event locationInWindow];
     NSPoint l = [self convertPoint:p fromView:nil];
 
-	MBCUnProjector	unproj(l.x, l.y);
-	MBCPosition 	pos 	= unproj.UnProject();
+	return [self mouseToPosition:l];
+}
+
+- (void) mouseMoved:(NSEvent *)event
+{
+	MBCPosition 	pos 	= [self eventToPosition:event];
 	float 			pxa		= fabs(pos[0]);
 	float			pza		= fabs(pos[2]);
 	NSCursor *		cursor	= fArrowCursor;
@@ -148,10 +222,10 @@ MBCPosition operator-(const MBCPosition & a, const MBCPosition & b)
 
 - (void) mouseDown:(NSEvent *)event
 {
-    NSPoint p 	= [event locationInWindow];
-    NSPoint l 	= [self convertPoint:p fromView:nil];
+	MBCSquare previouslyPicked = fPickedSquare;
 
-	MBCUnProjector	unproj(l.x, l.y);
+    NSPoint p = [event locationInWindow];
+    NSPoint l = [self convertPoint:p fromView:nil];
 
 	//	
 	// On mousedown, we determine the point on the board surface that 
@@ -159,7 +233,7 @@ MBCPosition operator-(const MBCPosition & a, const MBCPosition & b)
 	// then pretend that the click happened at board surface level. Weirdly
 	// enough, this seems to give the most natural feeling mouse behavior.
 	//
-	MBCPosition pos = unproj.UnProject();
+	MBCPosition pos = [self mouseToPosition:l];
 
 	MBCSquare selectedStart = fSelectedDest = 
 		[self positionToSquareOrRegion:&pos];
@@ -213,7 +287,9 @@ MBCPosition operator-(const MBCPosition & a, const MBCPosition & b)
 			break;
 		case NSLeftMouseUp: {
 			[self dragAndRedraw:event forceRedraw:YES];
-			[fInteractive endSelection:fSelectedDest];
+			[fInteractive endSelection:fSelectedDest animate:NO];
+			if (fPickedSquare == previouslyPicked)
+				fPickedSquare = kInvalidSquare; // Toggle pick
 			goOn = false;
 			if (fInBoardManipulation) {
 				fInBoardManipulation = false;
@@ -235,11 +311,16 @@ MBCPosition operator-(const MBCPosition & a, const MBCPosition & b)
 		return;
 
 	MBCPiece promo;
-	if (fSelectedDest == kWhitePromoSquare)
+	if (fSelectedDest == kWhitePromoSquare) {
 		promo = [fBoard defaultPromotion:YES];
-	else if (fSelectedDest == kBlackPromoSquare)
+	} else if (fSelectedDest == kBlackPromoSquare) {
 		promo = [fBoard defaultPromotion:NO];
-	else
+	} else if (fPickedSquare != kInvalidSquare) {
+		[fInteractive startSelection:fPickedSquare];
+		[fInteractive endSelection:fSelectedDest animate:YES];
+
+		return;
+	} else
 		return;
 	
 	switch (promo) {

@@ -1,7 +1,7 @@
 /*
 	File:		MBCTuner.h
 	Contains:	Manage a window to set graphics options
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -49,6 +49,7 @@
 @class MBCBoardView;
 
 @interface MBCTunerStyle : NSObject {
+	IBOutlet id fDiffuse;
 	IBOutlet id	fSpecular;
 	IBOutlet id fShininess;
 	IBOutlet id fAlpha;

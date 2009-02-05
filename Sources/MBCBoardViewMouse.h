@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardViewMouse.h
 	Contains:	Mouse handling for OpenGL chess board view
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -47,9 +47,14 @@
 
 @interface MBCBoardView ( Mouse )
 
+- (MBCPosition) mouseToPosition:(NSPoint)mouse;
 - (void) mouseDown:(NSEvent *)event;
 - (void) mouseMoved:(NSEvent *)event;
 - (void) mouseUp:(NSEvent *)event;
 - (void) dragAndRedraw:(NSEvent *)event forceRedraw:(BOOL)force;
 
 @end
+
+// Local Variables:
+// mode:ObjC
+// End:

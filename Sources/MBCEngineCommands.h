@@ -1,7 +1,7 @@
 /*
 	File:		MBCEngineCommands.h
 	Contains:	Encode commands sent by chess engine.
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following

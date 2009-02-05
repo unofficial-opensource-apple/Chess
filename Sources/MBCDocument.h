@@ -1,7 +1,7 @@
 /*
 	File:		MBCDocument.h
 	Contains:	Pseudo-document, used only for loading and saving
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following

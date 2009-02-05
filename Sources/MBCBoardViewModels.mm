@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardViewModels.mm
 	Contains:	Define OpenGL models for chess pieces
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 	
 	Derived from glChess, Copyright © 2002 Robert Ancell and Michael Duelli
 	Permission granted to Apple to relicense under the following terms:
@@ -68,7 +68,7 @@ static int sPolyCount;
 #define POLY_STAT_QUAD()		POLY_STAT(2)
 #define POLY_STAT_TRIANGLE()	POLY_STAT(1)
 
-const float kPieceSize = 1.0f;
+const float kPieceSize = 0.85f;
 
 /* Revolutions start in the positive z-axis (towards camera) and go
  * anti-clockwise */
@@ -77,21 +77,25 @@ const float kPieceSize = 1.0f;
 int revolve_line(float *trace_r, float *trace_h, float max_iheight)
 {
 	const int	nsteps = 16;
-	const float kTexScale	= 10.0f;
+	const float kTexScale	= 10.0f*kPieceSize;
 	GLUquadricObj * q 		= gluNewQuadric();
 	gluQuadricNormals(q, GLU_SMOOTH);
 	gluQuadricTexture(q, true);
 	glPushMatrix();
 	glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
 	while (trace_r[1] != 0.0f || trace_h[1] != 0.0f) {
-		float	dh = trace_h[1]-trace_h[0];
-		if (dh == 0.0f) {
-			if (trace_r[1] > trace_r[0]) {
+		float   th0= trace_h[0]*kPieceSize;
+		float   th1= trace_h[1]*kPieceSize;
+		float   tr0= trace_r[0]*kPieceSize;
+		float   tr1= trace_r[1]*kPieceSize;
+		float	dh = th1-th0;
+		if (fabs(dh) < 0.00001f) {
+			if (tr1 > tr0) {
 				gluQuadricOrientation(q, GLU_INSIDE);
-				gluDisk(q, trace_r[0], trace_r[1], nsteps, 1);
+				gluDisk(q, tr0, tr1, nsteps, 1);
 				gluQuadricOrientation(q, GLU_OUTSIDE);
 			} else {
-				gluDisk(q, trace_r[1], trace_r[0], nsteps, 1);
+				gluDisk(q, tr1, tr0, nsteps, 1);
 			}
 			POLY_STAT(nsteps);
 		} else {
@@ -102,10 +106,10 @@ int revolve_line(float *trace_r, float *trace_h, float max_iheight)
 			if (dh < 0.0f) {
 				gluQuadricOrientation(q, GLU_INSIDE);
 				glTranslatef(0.0f, 0.0f, dh);
-				gluCylinder(q, trace_r[1], trace_r[0], -dh, nsteps, 1);
+				gluCylinder(q, tr1, tr0, -dh, nsteps, 1);
 				gluQuadricOrientation(q, GLU_OUTSIDE);
 			} else {
-				gluCylinder(q, trace_r[0], trace_r[1], dh, nsteps, 1);
+				gluCylinder(q, tr0, tr1, dh, nsteps, 1);
 				glTranslatef(0.0f, 0.0f, dh);
 			}
 			POLY_STAT(2*nsteps);

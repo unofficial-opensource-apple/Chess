@@ -1,7 +1,7 @@
 /*
 	File:		MBCTuner.h
 	Contains:	Manage a window to set graphics options
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -55,6 +55,7 @@ static MBCTuner *	sTuner;
 
 - (void) updateFrom:(MBCDrawStyle *)drawStyle
 {
+	[fDiffuse setFloatValue:drawStyle->fDiffuse];
 	[fSpecular setFloatValue:drawStyle->fSpecular];
 	[fShininess setFloatValue:drawStyle->fShininess];
 	[fAlpha setFloatValue:drawStyle->fAlpha];
@@ -62,6 +63,7 @@ static MBCTuner *	sTuner;
 
 - (void) updateTo:(MBCDrawStyle *)drawStyle
 {
+	drawStyle->fDiffuse		= [fDiffuse floatValue];
 	drawStyle->fSpecular	= [fSpecular floatValue];
 	drawStyle->fShininess	= [fShininess floatValue];
 	drawStyle->fAlpha		= [fAlpha floatValue];

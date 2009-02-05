@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardView.mm
 	Contains:	General view handling infrastructure
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -134,12 +134,13 @@ void MBCColor::SetColor(NSColor * newColor)
 	fAzimuth			= 180.0f;
 	fInAnimation		= false;
 	fInBoardManipulation= false;
+	fPickedSquare		= kInvalidSquare;
 	fSelectedPiece		= EMPTY;
 	fSelectedDest		= kInvalidSquare;
 	fWantMouse			= false;
 	fNeedPerspective	= true;
 	fAmbient			= light_ambient;
-	fLightPos			= light_pos;
+	memcpy(fLightPos, light_pos, sizeof(fLightPos));
 
 	fHandCursor			= [[NSCursor alloc]
 							  initWithImage:[NSImage imageNamed:@"handCursor"]
@@ -261,8 +262,16 @@ void MBCColor::SetColor(NSColor * newColor)
 	fLastMove	= nil;
 }
 
+- (void) clickPiece
+{
+	fPickedSquare = fSelectedSquare;
+
+    [self unselectPiece];
+}
+
 - (void) selectPiece:(MBCPiece)piece at:(MBCSquare)square
 {
+	fPickedSquare	=   kInvalidSquare;
 	fSelectedPiece	=	piece;
 	fSelectedSquare	=   square;
 

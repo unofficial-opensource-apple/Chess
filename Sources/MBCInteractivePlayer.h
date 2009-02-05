@@ -1,7 +1,7 @@
 /*
 	File:		MBCInteractivePlayer.h
 	Contains:	An agent representing a local human player
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -78,7 +78,7 @@
 // dragging.
 //
 - (void) startSelection:(MBCSquare)square;
-- (void) endSelection:(MBCSquare)square;
+- (void) endSelection:(MBCSquare)square animate:(BOOL)animate;
 
 //
 // If we recognize a move, we have to broadcast it
@@ -86,3 +86,7 @@
 - (void) recognized:(SRRecognitionResult)result;
 
 @end
+
+// Local Variables:
+// mode:ObjC
+// End:

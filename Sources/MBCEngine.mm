@@ -1,7 +1,7 @@
 /*
 	File:		MBCEngine.mm
 	Contains:	An agent representing the sjeng chess engine
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -48,6 +48,20 @@
 #import "MBCController.h"
 
 #include <unistd.h>
+#include <algorithm>
+
+//
+// Paradoxically enough, moving as quickly as possible is 
+// not necessarily desirable. Users tend to get frustrated 
+// once they realize how little time their Mac really spends 
+// to crush them at low levels. In the interest of promoting 
+// harmonious Human - Machine relations, we enforce minimum
+// response times.
+//
+const NSTimeInterval kInteractiveDelay	= 2.0;
+const NSTimeInterval kAutomaticDelay	= 4.0;
+
+using std::max;
 
 @implementation MBCEngine
 
@@ -60,6 +74,7 @@
 	fLastMove	 	= nil;
 	fLastPonder	 	= nil;
 	fLastEngineMove	= nil;
+	fDontMoveBefore	= [NSDate timeIntervalSinceReferenceDate];
 	fMainRunLoop = [NSRunLoop currentRunLoop];
 	fEngineMoves = [[NSPort port] retain];
 	[fEngineMoves setDelegate:self];
@@ -115,7 +130,12 @@
 - (void) setSearchTime:(int)time
 {
 	fSearchTime = time;
-	[self writeToEngine:[NSString stringWithFormat:@"st %d\n", fSearchTime]];
+	if (fSearchTime < 0)
+		[self writeToEngine:[NSString stringWithFormat:@"sd %d\n", 
+									  4+fSearchTime]];
+	else
+		[self writeToEngine:[NSString stringWithFormat:@"st %d\n", 
+									  fSearchTime]];
 }
 
 - (MBCMove *) lastPonder
@@ -162,6 +182,22 @@
 	[[NSNotificationCenter defaultCenter] 
 		postNotificationName:MBCTakebackNotification
 		object:nil];		
+}
+
+- (void) executeMove:(MBCMove *) move;
+{
+	[self flipSide];
+	[fLastPonder release];
+	fLastPonder = nil;
+	[fLastEngineMove release];
+	fLastEngineMove	= [move retain];
+	[[NSNotificationCenter defaultCenter] 
+		postNotificationName:[self notificationForSide]
+		object:move];		
+	if (fTakeback) {
+		fTakeback = false;
+		[self takebackNow];
+	}
 }
 
 - (void) handlePortMessage:(NSPortMessage *)message
@@ -226,18 +262,14 @@
 		// current move is executed on the board
 		//
 		[self enableEngineMoves:NO];
-		[self flipSide];
-		[fLastPonder release];
-		fLastPonder = nil;
-		[fLastEngineMove release];
-		fLastEngineMove	= [move retain];
-		[[NSNotificationCenter defaultCenter] 
-			postNotificationName:[self notificationForSide]
-			object:move];		
-		if (fTakeback) {
-			fTakeback = false;
-			[self takebackNow];
-		}
+		
+		NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+		[self performSelector:@selector(executeMove:) withObject:move 
+			  afterDelay: fDontMoveBefore-now];
+
+		if (fSide == kBothSides)
+			fDontMoveBefore = max(now,fDontMoveBefore)+kAutomaticDelay;
+
 		break;
 	}
 }
@@ -271,7 +303,7 @@
 		// Regular Chess
 		break;
 	}
-	[self writeToEngine:[NSString stringWithFormat:@"st %d\n", fSearchTime]];
+	[self setSearchTime:fSearchTime];
 	fTakeback = false;
 }
 
@@ -429,6 +461,7 @@
 	default:
 		break;
 	}	
+	fDontMoveBefore	= [NSDate timeIntervalSinceReferenceDate]+kInteractiveDelay;
 }
 
 - (NSString *) squareToCoord:(MBCSquare)square

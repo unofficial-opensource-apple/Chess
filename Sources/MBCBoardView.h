@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardView.h
 	Contains:	Displays and manipulates an OpenGL chess board
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -70,13 +70,13 @@ struct MBCPosition {
 MBCPosition operator-(const MBCPosition & a, const MBCPosition & b);
 
 extern MBCPieceCode gInHandOrder[];
-const float kInHandPieceX 		= 49.0f;
+const float kInHandPieceX 		= 51.0f;
 const float kInHandPieceZOffset	=  3.0f;
-const float	kInHandPieceSize	=  6.0f;
+const float	kInHandPieceSize	=  8.0f;
 const float	kPromotionPieceX	= 50.0f;
 const float kPromotionPieceZ	= 35.0f;
 const float kBoardRadius		= 40.0f;
-const float kBorderWidth		=  5.0f;
+const float kBorderWidth		=  6.25f;
 const float kMinElevation		= 10.0f;
 const float kMaxElevation		= 80.0f;
 
@@ -89,6 +89,7 @@ const float kMaxElevation		= 80.0f;
 	MBCController *			fController;
 	MBCInteractivePlayer *	fInteractive;
     MBCBoard *  			fBoard;
+	MBCSquare				fPickedSquare;
 	MBCPiece				fSelectedPiece;
 	MBCSquare				fSelectedSquare;
 	MBCSquare				fSelectedDest;
@@ -160,6 +161,7 @@ const float kMaxElevation		= 80.0f;
 - (void) selectPiece:(MBCPiece)piece at:(MBCSquare)square to:(MBCSquare)dest;
 - (void) moveSelectionTo:(MBCPosition *)position;
 - (void) unselectPiece;
+- (void) clickPiece;
 
 //
 // Show hints and last moves
@@ -174,6 +176,7 @@ const float kMaxElevation		= 80.0f;
 - (MBCSquare) 	positionToSquare:(const MBCPosition *)position;
 - (MBCSquare) 	positionToSquareOrRegion:(const MBCPosition *)position;
 - (MBCPosition)	squareToPosition:(MBCSquare)square;
+- (NSRect)	    approximateBoundsOfSquare:(MBCSquare)square;
 - (void) snapToSquare:(MBCPosition *)position;
 - (MBCSide) 	facing;			// What player are we facing?
 - (BOOL) 		facingWhite;	// Are we facing white?

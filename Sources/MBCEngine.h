@@ -1,7 +1,7 @@
 /*
 	File:		MBCEngine.h
-	Contains:	An agent represening the chess playing engine
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Contains:	An agent representing the chess playing engine
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -51,26 +51,27 @@
 //
 @interface MBCEngine : MBCPlayer
 {
-	NSTask *				fEngineTask;	// The chess engine
-	NSFileHandle * 			fToEngine;		// Writing to the engine
-	NSFileHandle * 			fFromEngine;	// Reading from the engine
-	NSPipe *				fToEnginePipe;
-	NSPipe *				fFromEnginePipe;
-    NSRunLoop *				fMainRunLoop;	
-	NSPort *				fEngineMoves;	// Moves parsed from engine
-	NSPortMessage *			fMove;			// 	... the move
-	MBCMove *	 			fLastMove;		// Last move played by player
-	MBCMove *				fLastPonder;	// Last move pondered by engine
-	MBCMove *				fLastEngineMove;// Last move played by engine
-	MBCSide					fLastSide;		// Side of player
-	bool					fThinking;		// Engine currently thinking
-	bool					fWaitForStart;	// Wait for StartGame command
-	bool					fSetPosition;	// Position set up already
-	bool					fTakeback;		// Pending takeback
-	bool					fEngineEnabled;	// Engine moves enabled?
-	bool					fNeedsGo;		// Engine needs explicit start
-	MBCSide					fSide;			// What side(s) engine is playing
-	int						fSearchTime;	// Thinking time per move
+	NSTask * 		fEngineTask;	// The chess engine
+	NSFileHandle * 	fToEngine;		// Writing to the engine
+	NSFileHandle * 	fFromEngine;	// Reading from the engine
+	NSPipe * 		fToEnginePipe;
+	NSPipe * 		fFromEnginePipe;
+    NSRunLoop * 	fMainRunLoop;	
+	NSPort * 		fEngineMoves;	// Moves parsed from engine
+	NSPortMessage * fMove;			// 	... the move
+	MBCMove * 		fLastMove;		// Last move played by player
+	MBCMove * 		fLastPonder;	// Last move pondered by engine
+	MBCMove * 		fLastEngineMove;// Last move played by engine
+	MBCSide 		fLastSide;		// Side of player
+	bool 			fThinking;		// Engine currently thinking
+	bool 			fWaitForStart;	// Wait for StartGame command
+	bool 			fSetPosition;	// Position set up already
+	bool 			fTakeback;		// Pending takeback
+	bool 			fEngineEnabled;	// Engine moves enabled?
+	bool 			fNeedsGo;		// Engine needs explicit start
+	MBCSide 		fSide;			// What side(s) engine is playing
+	int 			fSearchTime;	// Thinking time per move
+	NSTimeInterval 	fDontMoveBefore;// Delay next engine move
 }
 
 - (id) init;

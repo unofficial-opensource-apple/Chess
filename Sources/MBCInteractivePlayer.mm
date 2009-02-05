@@ -1,7 +1,7 @@
 /*
 	File:		MBCInteractivePlayer.mm
 	Contains:	An agent representing a local human player
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -359,15 +359,19 @@ const char *	sPieceName[] = {
 		MBCMove * 	move = reinterpret_cast<MBCMove *>([notification object]);
 		NSString *	text = [self stringFromMove:move];
 
-		Str255	str;
-		memcpy(str+1, [text cString], str[0]=[text cStringLength]);
 		//
 		// We only wait for speech to end before speaking the next move
 		// to allow a maximum in concurrency.
 		//
 		while (SpeechBusy() > 0)
 			;
-		SpeakString(str);
+		NSSpeechSynthesizer * synth;
+		if (fSide == kNeitherSide && Color(move->fPiece)==kBlackPiece)
+			synth = [fController alternateSynth];
+		else
+			synth = [fController defaultSynth];
+
+		[synth startSpeakingString:text];
 	}
 }
 
@@ -384,7 +388,7 @@ const char *	sPieceName[] = {
 	if (square > kInHandSquare) {
 		piece = square-kInHandSquare;
 		if (fVariant!=kVarCrazyhouse || ![[fController board] curInHand:piece])
-			piece = EMPTY;
+			return;
 	} else if (square == kWhitePromoSquare || square == kBlackPromoSquare)
 		return;
 	else
@@ -399,9 +403,13 @@ const char *	sPieceName[] = {
 	}
 }
 
-- (void) endSelection:(MBCSquare)square
+- (void) endSelection:(MBCSquare)square animate:(BOOL)animate
 {
-	if (fFromSquare == square || square > kSyntheticSquare) {
+	if (fFromSquare == square) {
+		[[fController view] clickPiece];
+
+		return;
+	} else if (square > kSyntheticSquare) {
 		[[fController view] unselectPiece];
 		
 		return;
@@ -416,7 +424,7 @@ const char *	sPieceName[] = {
 		move->fFromSquare	= fFromSquare;
 	}
 	move->fToSquare		= square;
-	move->fAnimate		= NO;	// Move already made on board
+	move->fAnimate		= animate;
 
 	//
 	// Fill in promotion info
@@ -456,7 +464,7 @@ const char *	sPieceName[] = {
 
 @end
 
-
 // Local Variables:
 // mode:ObjC
 // End:
+ 

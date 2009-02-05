@@ -1,8 +1,8 @@
 /*
-	File:		MBCBoardViewModels.h
-	Contains:	Piece model handling for OpenGL chess board view
-	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
-
+  File:		MBCBoardViewDraw.h
+  Contains:	Accessibility navigation for chess board
+  Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
+  
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
 	terms, and your use, installation, modification or redistribution of
@@ -45,9 +45,21 @@
 
 #import "MBCBoardView.h"
 
-@interface MBCBoardView ( Models )
+@interface MBCBoardAccessibilityProxy : NSObject
+{
+	MBCBoardView *	fView;
+	MBCSquare		fSquare;
+}
 
-- (void) generateModelLists;
++ (id) proxyWithView:(MBCBoardView *)view square:(MBCSquare)square;
+- (id) initWithView:(MBCBoardView *)view square:(MBCSquare)square;
+
+@end
+
+@interface MBCBoardView (Accessibility)
+
+- (NSString *) describeSquare:(MBCSquare)square;
+- (void) selectSquare:(MBCSquare)square;
 
 @end
 

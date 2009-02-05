@@ -1,7 +1,7 @@
 /*
 	File:		MBCController.h
 	Contains:	Managing the entire user interface
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -51,6 +51,7 @@
 @class MBCBoardView;
 @class MBCEngine;
 @class MBCInteractivePlayer;
+@class NSSpeechSynthesizer;
 
 @interface MBCController : NSObject
 {
@@ -68,8 +69,12 @@
 	IBOutlet id		fLicense;
 	IBOutlet id		fGameInfo;
 	IBOutlet id 	fOpaqueView;
+	IBOutlet id		fComputerVoice;
+	IBOutlet id		fAlternateVoice;
+#if HAS_FLOATING_BOARD
 	IBOutlet id 	fFloatingView;
 	IBOutlet id		fFloatingMenuItem;
+#endif
 
 	MBCBoard *				fBoard;
 	MBCBoardView *			fView;
@@ -84,6 +89,8 @@
 	NSDictionary *			fLastLoad;
 	NSString *				fLastSaved;
 	NSMutableDictionary * 	fStyleLocMap;
+	NSSpeechSynthesizer *	fDefaultSynth;
+	NSSpeechSynthesizer *	fAlternateSynth;
 }
 
 + (MBCController *)controller;
@@ -105,7 +112,11 @@
 - (IBAction) saveGame:(id)sender;
 - (IBAction) saveGameAs:(id)sender;
 - (IBAction) saveMoves:(id)sender;
+- (IBAction) updateVoices:(id)sender;
+
+#if HAS_FLOATING_BOARD
 - (IBAction) toggleFloating:(id)sender;
+#endif
 
 - (void) startNewGame;
 
@@ -127,6 +138,10 @@
 - (NSWindowController *) windowController;
 
 - (NSString *) localizedStyleName:(NSString *)name;
+
+- (NSSpeechSynthesizer *) defaultSynth;
+- (NSSpeechSynthesizer *) alternateSynth;
+- (void)loadVoiceMenu:(id)menu withSelectedVoice:(NSString *)voiceIdentifierToSelect;
 
 @end
 

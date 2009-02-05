@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardViewTextures.mm
 	Contains:	Load OpenGL textures from resources
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 	
 	Derived from glChess, Copyright © 2002 Robert Ancell and Michael Duelli
 	Permission granted to Apple to relicense under the following terms:
@@ -53,6 +53,7 @@
 #import <stdlib.h> 
 #import <string.h>
 #import <OpenGL/glu.h>
+#import <OpenGL/glext.h>
 #import <GLUT/glut.h>
 
 void
@@ -330,6 +331,7 @@ GLuint load_texture(NSString * name, NSString * dir, BOOL mono)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4);
 
     gluBuild2DMipmaps(GL_TEXTURE_2D, 4, w, h, GL_RGBA,  GL_UNSIGNED_BYTE, data);
             
@@ -355,6 +357,8 @@ GLuint load_texture(NSString * name, NSString * dir, BOOL mono)
 				  color:(NSString *)color
 				   into:(NSMutableDictionary *)dict
 {
+	[self mergeField:style->fDiffuse 
+		  into:dict color:color entry:@"Diffuse"];
 	[self mergeField:style->fSpecular 
 		  into:dict color:color entry:@"Specular"];
 	[self mergeField:style->fShininess 
@@ -418,6 +422,8 @@ GLuint load_texture(NSString * name, NSString * dir, BOOL mono)
     [drawStyle initWithTexture:
 			   load_texture([color stringByAppendingString:part],
 							style, FALSE)];	
+	[self loadField:&drawStyle->fDiffuse 
+		  fromAttr:attr color:color entry:@"Diffuse"];
 	[self loadField:&drawStyle->fSpecular 
 		  fromAttr:attr color:color entry:@"Specular"];
 	[self loadField:&drawStyle->fShininess 

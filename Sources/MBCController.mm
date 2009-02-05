@@ -1,7 +1,7 @@
 /*
 	File:		MBCController.mm
 	Contains:	The controller tying the various agents together
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
@@ -63,6 +63,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#import <CoreFoundation/CFLogUtilities.h>
+
 NSString * kMBCBoardAngle		= @"MBCBoardAngle";
 NSString * kMBCBoardSpin		= @"MBCBoardSpin";
 NSString * kMBCBoardStyle		= @"MBCBoardStyle";
@@ -70,7 +72,8 @@ NSString * kMBCListenForMoves	= @"MBCListenForMoves";
 NSString * kMBCPieceStyle		= @"MBCPieceStyle";
 NSString * kMBCSearchTime		= @"MBCSearchTime";
 NSString * kMBCSpeakMoves		= @"MBCSpeakMoves";
-NSString * kMBCFloatingBoard 	= @"MBCFloatingBoard";
+NSString * kMBCDefaultVoice		= @"MBCDefaultVoice";
+NSString * kMBCAlternateVoice 	= @"MBCAlternateVoice";
 
 //
 // Base of logarithmic search time slider
@@ -222,8 +225,12 @@ static id	sInstance;
 
 - (void) setBoardView:(BOOL)startGame
 {
+#if HAS_FLOATING_BOARD
 	fView	= fFloatingMenuItem && [fFloatingMenuItem state] 
 		? fFloatingView : fOpaqueView;
+#else
+	fView 	= fOpaqueView;
+#endif
 
 	NSUserDefaults * 	defaults 	= [NSUserDefaults standardUserDefaults];
 
@@ -341,10 +348,24 @@ static id	sInstance;
 	[fSpeakMoves setIntValue:[defaults boolForKey:kMBCSpeakMoves]];
 	int searchTime = [defaults integerForKey:kMBCSearchTime];
 	[fEngine setSearchTime:searchTime];
-	[fSearchTime setFloatValue:log(searchTime) / log(kMBCSearchTimeBase)];
+	if (searchTime < 0)
+		[fSearchTime setFloatValue:searchTime];
+	else
+		[fSearchTime setFloatValue:log(searchTime) / log(kMBCSearchTimeBase)];
 #if HAS_FLOATING_BOARD
 	[fFloatingMenuItem setState:[defaults integerForKey:kMBCFloatingBoard]];
 #endif
+	fDefaultSynth	= 
+		[[NSSpeechSynthesizer alloc] 
+			initWithVoice:[defaults objectForKey:kMBCDefaultVoice]];
+	fAlternateSynth	= 
+		[[NSSpeechSynthesizer alloc] 
+			initWithVoice:[defaults objectForKey:kMBCAlternateVoice]];
+
+	[self loadVoiceMenu:fComputerVoice 
+		  withSelectedVoice:[defaults objectForKey:kMBCDefaultVoice]];
+	[self loadVoiceMenu:fAlternateVoice 
+		  withSelectedVoice:[defaults objectForKey:kMBCAlternateVoice]];
 }
 
 - (IBAction)updateGraphicsOptions:(id)sender
@@ -364,10 +385,11 @@ static id	sInstance;
 
 - (IBAction) updateSearchTime:(id)sender
 {
-	int					searchTime	= 
+	float				rawTime		= [sender floatValue];
+	int					searchTime	= rawTime < 0 ? (int)floor(rawTime) :
 		(int)pow(kMBCSearchTimeBase, [sender floatValue]);
 	NSUserDefaults * 	defaults 	= [NSUserDefaults standardUserDefaults];
-	
+
 	[defaults setInteger:searchTime forKey:kMBCSearchTime];
 	[fEngine setSearchTime:searchTime];
 }
@@ -472,6 +494,28 @@ static id	sInstance;
 	NSLog(@"Draw End\n");
 }
 
+//
+// Built in self test (RADAR 3590419 / Feature 8905)
+//
+- (void)application:(NSApplication *)sender runTest:(unsigned int)testToRun duration:(NSTimeInterval)duration
+{
+	int		 	iteration = 0;
+	NSDate * 	startTest = [NSDate date];
+
+	do {
+		//
+		// Maintain our own autorelease pool so heap size does not grow 
+		// excessively.
+		//
+		NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
+		CFLogTest(0, 
+				  CFSTR("Iteration:%d Message: Running test 0 [Draw Board]"), 
+				  ++iteration);
+		[fView profileDraw];
+		[pool release];
+	} while (-[startTest timeIntervalSinceNow] < duration);
+}
+
 - (IBAction)toggleLogging:(id)sender
 {
 	if ((fIsLogging = !fIsLogging) && !fEngineLogFile) {
@@ -485,7 +529,7 @@ static id	sInstance;
 				stringByAppendingPathComponent:@"Logs"];
 		[mgr createDirectoryAtPath:logDir attributes:nil];
 		NSString * log	= [logDir stringByAppendingPathComponent:@"Chess.log"];
-		creat([log cString], 0666);
+		creat([log fileSystemRepresentation], 0666);
 		fEngineLogFile = [[NSFileHandle fileHandleForWritingAtPath:log] retain];
 	}
 }
@@ -619,6 +663,7 @@ static id	sInstance;
 	[fGameInfo updateTitle:self];
 }
 
+#if HAS_FLOATING_BOARD
 - (IBAction) toggleFloating:(id)sender
 {
 	[[fView window] orderOut:self];
@@ -628,6 +673,7 @@ static id	sInstance;
 	[defaults setBool:newState forKey:kMBCFloatingBoard];
 	[self setBoardView:NO];
 }
+#endif
 
 - (BOOL) loadGame:(NSString *)fileName fromDict:(NSDictionary *)dict
 {
@@ -676,7 +722,7 @@ static id	sInstance;
 
 - (BOOL) saveMovesTo:(NSString *)fileName
 {
-	FILE * f = fopen([fileName cString], "w");
+	FILE * f = fopen([fileName fileSystemRepresentation], "w");
 		
 	NSString * header = [fGameInfo pgnHeader];
 	NSData *	encoded = [header dataUsingEncoding:NSISOLatin1StringEncoding
@@ -737,12 +783,14 @@ static id	sInstance;
 		[self toggleLogging:self];
 	if (debug & 8)
 		sleep(30);
+#if HAS_FLOATING_BOARD
 	if (!(debug & 16)) {
 		[[fFloatingMenuItem menu] removeItem:fFloatingMenuItem];
 		[[fFloatingView window] release];
 		fFloatingMenuItem	= nil;
 		fFloatingView		= nil;
 	}
+#endif
 }
 
 - (void)applicationWillTerminate:(NSNotification *)n
@@ -767,6 +815,59 @@ static id	sInstance;
 		 ([fWhiteType isEqual:kMBCHumanPlayer] 
 		  || [fBlackType isEqual:kMBCHumanPlayer]
 		  );
+}
+
+const int kNumFixedMenuItems = 2;
+
+- (NSSpeechSynthesizer *)defaultSynth
+{
+	return fDefaultSynth;
+}
+
+- (NSSpeechSynthesizer *)alternateSynth
+{
+	return fAlternateSynth;
+}
+
+- (void)loadVoiceMenu:(id)menu withSelectedVoice:(NSString *)voiceIdentifierToSelect 
+{
+    NSString *		voiceIdentifier 		= NULL;
+    NSEnumerator *	voiceEnumerator 		= 
+		[[NSSpeechSynthesizer availableVoices] objectEnumerator];
+    UInt32			curMenuItemIndex 		= kNumFixedMenuItems;
+    UInt32			menuItemIndexToSelect	= 0;
+    while (voiceIdentifier = [voiceEnumerator nextObject]) {
+        [menu addItemWithTitle:[[NSSpeechSynthesizer attributesForVoice:voiceIdentifier] objectForKey:NSVoiceName]];
+        
+        if (voiceIdentifierToSelect && [voiceIdentifier isEqualToString:voiceIdentifierToSelect])
+            menuItemIndexToSelect = curMenuItemIndex;
+        
+        curMenuItemIndex++;
+    }
+    
+    // Select the desired menu item.
+    [menu selectItemAtIndex:menuItemIndexToSelect];
+}
+
+- (IBAction) updateVoices:(id)sender;
+{
+	NSUserDefaults *defaults 	= [NSUserDefaults standardUserDefaults];
+	NSString *		defaultID	= nil;
+	NSString * 		alternateID	= nil;
+	NSArray *		voices		= [NSSpeechSynthesizer availableVoices];
+	int				defaultIdx	= [fComputerVoice indexOfSelectedItem];
+	int				alternateIdx= [fAlternateVoice indexOfSelectedItem];
+
+	if (defaultIdx)
+		defaultID	= [voices objectAtIndex:defaultIdx-kNumFixedMenuItems];
+	if (alternateIdx)
+		alternateID	= [voices objectAtIndex:alternateIdx-kNumFixedMenuItems];
+
+	[fDefaultSynth setVoice:defaultID];
+	[fAlternateSynth setVoice:alternateID];
+
+	[defaults setObject:defaultID forKey:kMBCDefaultVoice];
+	[defaults setObject:alternateID forKey:kMBCAlternateVoice];
 }
 
 @end

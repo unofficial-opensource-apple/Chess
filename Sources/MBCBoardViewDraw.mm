@@ -1,7 +1,7 @@
 /*
 	File:		MBCBoardViewDraw.mm
 	Contains:	Draw chess board
-	Copyright:	© 2002-2003 Apple Computer, Inc. All rights reserved.
+	Copyright:	© 2002-2005 Apple Computer, Inc. All rights reserved.
 	
 	Derived from glChess, Copyright © 2002 Robert Ancell and Michael Duelli
 	Permission granted to Apple to relicense under the following terms:
@@ -67,6 +67,7 @@ using std::min;
 - (id) initWithTexture:(GLuint)tex
 {
 	fTexture	= tex;
+	fDiffuse	= 1.0f;
 	fSpecular	= 0.2f;
 	fShininess	= 5.0f;
 	fAlpha		= 1.0f;
@@ -83,7 +84,7 @@ using std::min;
 - (void) startStyle:(float)alpha
 {
 	GLfloat white_texture_color[4] 	= 
-		{1.0f, 1.0f, 1.0f, fAlpha*alpha};
+		{fDiffuse, fDiffuse, fDiffuse, fAlpha*alpha};
 	GLfloat emission_color[4] 		= 
 		{0.0f, 0.0f, 0.0f, fAlpha*alpha};
 	GLfloat specular_color[4] 		= 
@@ -108,7 +109,7 @@ using std::min;
 		//
 		// Regular window, draw background
 		//
-		const float kBrightness = 0.7f;
+		const float kBrightness = 0.6f;
 		glClearColor(kBrightness, kBrightness, kBrightness, 1.0);
 	} else {
 		//
@@ -137,8 +138,8 @@ using std::min;
 
 	glDisable(GL_FOG);
 
-	const float kDistance 		= 200.0f;
-	const float kBoardSize 		= fVariant==kVarCrazyhouse ? 60.0f : 55.0f;
+	const float kDistance 		= 300.0f;
+	const float kBoardSize 		= fVariant==kVarCrazyhouse ? 55.0f : 50.0f;
 	const float kDeg2Rad  		= M_PI / 180.0f;
 	const float kRad2Deg		= 180.0f / M_PI;
 	const float kAngleOfView	= 2.0f * atan2(kBoardSize, kDistance) * kRad2Deg;
@@ -152,7 +153,7 @@ using std::min;
 	glLoadIdentity();
 
     gluPerspective(kAngleOfView, bounds.size.width / bounds.size.height, 
-				   100.0, 250.0); 
+				   10.0, 1000.0); 
 
 	glMatrixMode(GL_MODELVIEW);
 
@@ -421,10 +422,10 @@ using std::min;
 	glDisable(GL_LIGHTING);
 
 	const float kSize	= 3.5f;
-	const float kNHOff	= 0.75f;
+	const float kNHOff	= 1.00f;
 	const float kNVOff	= 3.25f;
 	const float kLHOff	= 3.25f;
-	const float kLVOff	= 0.75f;
+	const float kLVOff	= 1.00f;
 
 	/* Draw the numbers, always on the left and upright, no matter
 	   which color we're playing
@@ -636,7 +637,8 @@ using std::min;
 
 - (void) placeLights
 {
-	GLfloat l_diffuse[4] = { 1.0, 1.0, 1.0, 1.0 };
+	const float kDiffuse = 0.75;
+	GLfloat l_diffuse[4] = { kDiffuse, kDiffuse, kDiffuse, 1.0 };
 	GLfloat l_ambient[4] = { fAmbient, fAmbient, fAmbient, 0.0 };
 
 	glEnable(GL_LIGHT0);
@@ -644,13 +646,35 @@ using std::min;
 	glLightfv(GL_LIGHT0, GL_AMBIENT, l_ambient);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, l_diffuse);
 	glLightfv(GL_LIGHT0, GL_POSITION, fLightPos);
+
+	if (fPickedSquare != kInvalidSquare) {
+		GLfloat spot_color[4]		= { 1.0, 1.0, 1.0, 1.0 };
+		GLfloat spot_pos[4] 		= { 0.0, 100.0, 0.0, 1.0};
+		GLfloat spot_direction[3]   = { 0.0, -1.0, 0.0 };
+
+		MBCPosition pickedPos = [self squareToPosition:fPickedSquare];
+
+		spot_pos[0]	= pickedPos[0];
+		spot_pos[2] = pickedPos[2];
+
+		glEnable(GL_LIGHT1);
+		glLightfv(GL_LIGHT1, GL_DIFFUSE, spot_color);
+		glLightfv(GL_LIGHT1, GL_SPECULAR, spot_color);
+		glLightfv(GL_LIGHT1, GL_POSITION, spot_pos);
+		glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, spot_direction);
+		glLighti(GL_LIGHT1, GL_SPOT_EXPONENT, 100);
+		glLighti(GL_LIGHT1, GL_SPOT_CUTOFF, 5);
+		glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, 0.0f);
+		glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, 0.0001f);
+	} else 
+		glDisable(GL_LIGHT1);
 }
 
 MBCPieceCode gInHandOrder[] = {PAWN, BISHOP, KNIGHT, ROOK, QUEEN};
 
 - (void) drawPiecesInHand
 {
-	const float kLabelX 	=  41.0f;
+	const float kLabelX 	=  42.0f;
 	const float kLabelSize	=  4.0f;
 	const float	kLabelLeft	=  kLabelX;
 	const float kLabelRight	=  kLabelX+kLabelSize;
@@ -658,7 +682,7 @@ MBCPieceCode gInHandOrder[] = {PAWN, BISHOP, KNIGHT, ROOK, QUEEN};
 	const float kLabelZ		=  4.0f;
 	const float kPieceX		=  kInHandPieceX;
 	const float kPieceZ		=  kInHandPieceZOffset+kInHandPieceSize/2.0f;
-	const float kScale		=  0.70f;
+	const float kScale		=  0.95f;
 	const bool  kFlip		=  fAzimuth < 90.0f || fAzimuth >= 270.0f;
 	const float	kTexLeft	=  kFlip ? 1.0f : 0.0f;
 	const float kTexRight	=  1.0f-kTexLeft;
