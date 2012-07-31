@@ -1,11 +1,8 @@
-#!/usr/bin/perl
-#
-# Remove internal information, add Apple License
-#
-
-$^I = "";
-
-$license =<<END_LICENSE; 
+/*
+  File:		MBCBoardViewDraw.h
+  Contains:	Accessibility navigation for chess board
+  Copyright:	ï¿½ 2004 by Apple Inc., all rights reserved.
+  
 	IMPORTANT: This Apple software is supplied to you by Apple Computer,
 	Inc.  ("Apple") in consideration of your agreement to the following
 	terms, and your use, installation, modification or redistribution of
@@ -22,7 +19,7 @@ $license =<<END_LICENSE;
 	entirety and without modifications, you must retain this notice and
 	the following text and disclaimers in all such redistributions of the
 	Apple Software.  Neither the name, trademarks, service marks or logos
-	of Apple Computer, Inc. may be used to endorse or promote products
+	of Apple Inc. may be used to endorse or promote products
 	derived from the Apple Software without specific prior written
 	permission from Apple.  Except as expressly stated in this notice, no
 	other rights or licenses, express or implied, are granted by Apple
@@ -44,29 +41,22 @@ $license =<<END_LICENSE;
 	HOWEVER CAUSED AND WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING
 	NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN
 	ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-END_LICENSE
+*/
 
-$in_header   = 1;
-$skip_header = 0;
-while (<>) {
-  if ($in_header) {
-    next if /^\s*Version:/; # Omit Version: line
-    s/(Copyright:\s*).*/\1© 2002-2005 Apple Computer, Inc. All rights reserved./;
-    if (/^\s*File Ownership/) {
-      print $license;
-      $in_header   = 0;
-      $skip_header = 1;
-      next;
-    }
-    print;
-  } elsif ($skip_header) {
-    if (m|\*/|) {
-      print;
-      $skip_header = 0;
-    }
-  } else {
-    print;
-    $in_header = 1 if eof;
-  }
+#import "MBCGameInfo.h"
+
+@interface MBCMoveAccessibilityProxy : NSObject
+{
+@public
+	MBCGameInfo *	fInfo;
+	int            fMove;
 }
 
++ (id) proxyWithInfo:(MBCGameInfo *)info move:(int)move;
+- (id) initWithInfo:(MBCGameInfo *)info move:(int)move;
+
+@end
+
+// Local Variables:
+// mode:ObjC
+// End:
